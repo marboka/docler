@@ -1,0 +1,6 @@
+2024-08-24 17:52:05,585 - fastapi - INFO - Running GPU benchmark...
+2024-08-24 17:52:14,022 - fastapi - INFO - CPU Performance:
+2024-08-24 17:52:14,022 - fastapi - INFO - Total time: 7.87 seconds
+2024-08-24 17:52:14,041 - fastapi - INFO - Running GPU benchmark...
+2024-08-24 17:52:22,129 - fastapi - INFO - GPU Performance:
+2024-08-24 17:52:22,129 - fastapi - INFO - Total time: 7.64 seconds
