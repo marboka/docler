@@ -12,7 +12,8 @@ from qdrant_client.http.models import (CollectionInfo, Distance,
 
 class Embedder:
 
-    def __init__(self, model_name: str, cache_dir: str):
+    def __init__(self, model_name: str, cache_dir: str, use_gpu:bool = False):
+        self.provider = ['CUDAExecutionProvider'] if use_gpu else ['CPUExecutionProvider'] 
         self.embedding_model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
         self.embedding_dim: int = list(self.embedding_model.embed("Test for dims"))[0].shape[0]
 
