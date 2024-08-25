@@ -1,0 +1,10 @@
+{
+    "synonyms": [
+        ["Moon", "Moon Mission"],
+        ["Moon", "Apollo 11"],
+        ["Moon", "Spacecraft"],
+        ["Spaceship", "Landing"],
+        ["Spacecraft", "Landing"],
+        ["NASA", "ESA"]
+    ]
+}

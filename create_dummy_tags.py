@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 tags = [
     "Apollo 11", "Moon", "Spacecraft", "Orbiter", "Lander", "Rover", "Probe", "Shuttle", "Satellite", "Space Station",
@@ -35,5 +36,7 @@ tags = [
 
 tags_df = pd.DataFrame(tags, columns=["name"])
 
-file_path = "dummy_tags.csv"
+if not os.path.exists("tags"):
+    os.mkdir("tags")
+file_path = "tags/dummy_tags.csv"
 tags_df.to_csv(file_path, index=True)
