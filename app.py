@@ -5,6 +5,7 @@ import threading
 from typing import List
 
 import pandas as pd
+import numpy as np
 from fastapi import (BackgroundTasks, FastAPI, File, HTTPException, Request,
                      UploadFile)
 from fastapi.responses import JSONResponse
@@ -14,6 +15,7 @@ from tagmatch.fuzzysearcher import FuzzyMatcher
 from tagmatch.logging_config import setup_logging
 from tagmatch.vec_db import Embedder, VecDB
 from tagmatch.synonym_manager import SynonymManager
+from tagmatch.vector_reducer import PcaReducer
 
 if not os.path.exists("./data"):
     os.makedirs("./data")
@@ -21,12 +23,15 @@ if not os.path.exists("./data"):
 setup_logging(file_path="./data/service.log")
 
 
+#move this to utils
 class Settings(BaseSettings):
     model_name: str
     cache_dir: str
     qdrant_host: str
     qdrant_port: int
     qdrant_collection: str
+    use_reduced_precision: bool
+    n_components: int
 
     class Config:
         env_file = ".env"
@@ -40,7 +45,7 @@ logger = logging.getLogger("fastapi")
 app.names_storage: List[str] = []
 
 # Placeholder for the semantic search components
-embedder = Embedder(model_name=settings.model_name, cache_dir=settings.cache_dir)
+embedder = Embedder(model_name=settings.model_name, cache_dir=settings.cache_dir, settings=settings)
 vec_db = VecDB(host=settings.qdrant_host,
                port=settings.qdrant_port,
                collection=settings.qdrant_collection,
@@ -51,6 +56,8 @@ app.fuzzy_matcher = FuzzyMatcher([])
 task_running = threading.Event()
 
 synonym_manager = SynonymManager(app.names_storage)
+if settings.use_reduced_precision:
+    pca_reducer = PcaReducer(settings.n_components)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -130,13 +137,21 @@ async def upload_synonym_csv(background_tasks: BackgroundTasks, file: UploadFile
 def process_csv(names_storage: List[str]):
     try:
         # Store embedded vectors for semantic search
-        for name in names_storage:
-            vector = embedder.embed(name)
-            vec_db.store(vector, {"name": name})
+        if not settings.use_reduced_precision:
+            for name in names_storage:
+                vector = embedder.embed(name)
+                vec_db.store(vector, {"name": name})
+        else:
+            embedding_matrix = np.array([embedder.embed(name) for name in names_storage])
+            pca_reducer.fit(embedding_matrix)
+            reduced_vectors = pca_reducer.transform(embedding_matrix)
+            for name, reduced_vector in zip(names_storage, reduced_vectors):
+                vec_db.store(reduced_vector, {"name": name})
 
         app.names_storage = names_storage
         app.fuzzy_matcher = FuzzyMatcher(app.names_storage)
         synonym_manager.set_names_storage(names_storage)
+
     finally:
         # Clear the flag to indicate that the task has completed
         task_running.clear()
@@ -178,11 +193,15 @@ async def search(query: str, k: int = 5):
     if synonym_words != None:
         for syn_word in synonym_words:
             query_vector = embedder.embed(syn_word)
+            if settings.use_reduced_precision:
+                query_vector = pca_reducer.transform(query_vector).flatten()
             semantic_matches += vec_db.find_closest(query_vector, k)
         if len(synonym_words) > 1:
             semantic_matches = sorted(semantic_matches, key=lambda x: x.score, reverse=True)[:k]
     else:
         query_vector = embedder.embed(query)
+        if settings.use_reduced_precision:
+            query_vector = pca_reducer.transform(query_vector).flatten()
         semantic_matches = vec_db.find_closest(query_vector, k)       
 
     # Formatting the response

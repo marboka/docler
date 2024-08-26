@@ -8,13 +8,17 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.http.models import (CollectionInfo, Distance,
                                        FieldCondition, Filter, MatchValue,
                                        PointStruct, VectorParams)
+from pydantic_settings import BaseSettings
 
 
 class Embedder:
 
-    def __init__(self, model_name: str, cache_dir: str):
+    def __init__(self, model_name: str, cache_dir: str, settings: BaseSettings):
         self.embedding_model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
-        self.embedding_dim: int = list(self.embedding_model.embed("Test for dims"))[0].shape[0]
+        if settings.use_reduced_precision:
+            self.embedding_dim = settings.n_components
+        else:
+            self.embedding_dim: int = list(self.embedding_model.embed("Test for dims"))[0].shape[0]
 
     def embed(self, text: str) -> np.ndarray:
         emb_generatpor = self.embedding_model.embed(text)
@@ -65,6 +69,7 @@ class VecDB:
             self.client.upsert(self.collection, points=[PointStruct(id=rnd_id, vector=vec_list, payload=payload)])
             return True
         except Exception:
+
             return False
 
     def get_item_count(self) -> int:
