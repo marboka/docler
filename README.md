@@ -12,6 +12,6 @@ I created the following endpoints:
 - /purge-synonym/
 - /task-synonym-status/
 
-I craeted a new class which handles all the logic regarding synonyms: tagmatch/synonym_manager.py  
+I craeted a new class which handles all the logic regarding synonyms: 'tagmatch/synonym_manager.py'. Also added unit tests to 'test/synonym_manager_test'  
 Synonmys are symmetric and transitive in my solution  
-In the app.py when we query a word, first we check if we have synonmys defined for it. If we have, we query the synonmys, combine search results, sort by semantic similarity and only show top k resuls.
+In the 'app.py' when we query a word, first we check if we have synonmys defined for it. If we have, we query the synonmys, combine search results, sort by semantic similarity and only show top k resuls. If not, we query the original word.
