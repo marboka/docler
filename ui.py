@@ -18,6 +18,16 @@ def upload_csv(file):
             return response.json()['message']
         else:
             return response.json()['detail']
+        
+def upload_synonym_csv(file):
+    filename = file.name
+    with open(filename, 'rb') as f:
+        files = {'file': (filename, f, 'text/csv')}
+        response = requests.post(f"{BASE_URL}/upload-synonym-csv/", files=files)
+        if response.status_code == 200:
+            return response.json()['message']
+        else:
+            return response.json()['detail']
 
 
 def search_names(query, k=5):
@@ -47,10 +57,25 @@ def delete_collection():
         return response.json()['message']
     else:
         return response.json()['detail']
+    
+def delete_synonym():
+    response = requests.delete(f"{BASE_URL}/purge-synonym/")
+    if response.status_code == 200:
+        return response.json()['message']
+    else:
+        return response.json()['detail']
 
 
 def check_task_status():
     response = requests.get(f"{BASE_URL}/task-status/")
+    if response.status_code == 200:
+        resp_str = json.dumps(response.json(), indent=4)
+        return resp_str
+    else:
+        return "Something bad happened"
+    
+def check_synonym_task_status():
+    response = requests.get(f"{BASE_URL}/task-synonym-status/")
     if response.status_code == 200:
         resp_str = json.dumps(response.json(), indent=4)
         return resp_str
@@ -94,6 +119,32 @@ with gr.Blocks(css="body { font-family: Arial, sans-serif; } footer { visibility
         delete_button = gr.Button("Delete Collection", elem_classes="tab-container")
         delete_status = gr.Textbox(label="Delete Status", interactive=False, elem_classes="tab-container")
         delete_button.click(fn=delete_collection, outputs=delete_status)
+
+    with gr.Tab("Upload Synonym CSV"):
+        with gr.Accordion("Information", open=False):
+            gr.Markdown("""## Info
+                        - the csv file must be **comma separated**, don't put spaces before the words
+                        - the csv file **should have a 'word' and 'synonym' column**, anything else will be discarded
+                        - you can only write one word to each columns
+                        - you can have multiple synonyms for the same word (you a need a different row for each synonym)
+                        - for example: 
+                                <br /> word,synonym
+                                <br /> word1,word2
+                                <br /> word1,word3
+                        """)
+        csv_file = gr.File(label="Upload CSV File", type='filepath', elem_classes="tab-container")
+        upload_button = gr.Button("Upload", elem_classes="tab-container")
+        upload_status = gr.Textbox(label="Upload Status", interactive=False, elem_classes="tab-container")
+
+        upload_button.click(fn=upload_synonym_csv, inputs=csv_file, outputs=upload_status)
+
+        status_button_upload = gr.Button("Check Task Status", elem_classes="tab-container")
+        status_display_upload = gr.Textbox(label="Task Status", interactive=False, elem_classes="tab-container")
+        status_button_upload.click(fn=check_synonym_task_status, outputs=status_display_upload)
+
+        delete_button = gr.Button("Delete Collection", elem_classes="tab-container")
+        delete_status = gr.Textbox(label="Delete Status", interactive=False, elem_classes="tab-container")
+        delete_button.click(fn=delete_synonym, outputs=delete_status)
 
 # Launch the interface
 demo.launch(server_name="0.0.0.0")

@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings
 from tagmatch.fuzzysearcher import FuzzyMatcher
 from tagmatch.logging_config import setup_logging
 from tagmatch.vec_db import Embedder, VecDB
+from tagmatch.synonym_manager import SynonymManager
 
 if not os.path.exists("./data"):
     os.makedirs("./data")
@@ -49,6 +50,7 @@ app.fuzzy_matcher = FuzzyMatcher([])
 # Flag to track background task status
 task_running = threading.Event()
 
+synonym_manager = SynonymManager(app.names_storage)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -98,6 +100,33 @@ async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(
     return {"message": "File accepted for processing. Names will be extracted and stored in the background."}
 
 
+@app.post("/upload-synonym-csv/")
+async def upload_synonym_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    if task_running.is_set():
+        raise HTTPException(status_code=400, detail="A task is already running. Please try again later.")
+
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400,
+                            detail="Invalid file format. Please upload a CSV file (needs to env with '.csv'.")
+
+    content = await file.read()
+    df = pd.read_csv(io.BytesIO(content), sep=None, header=0)
+
+    if 'word' not in list(df.columns) or 'synonym' not in list(df.columns):
+        raise HTTPException(status_code=400, detail="CSV file must contain a 'word' and 'synonym' columns.")
+
+    if len(df) < 1 :
+        raise HTTPException(status_code=400, detail="No names found in the CSV file.")
+
+    if synonym_manager.synonyms_exist():
+        raise HTTPException(status_code=400, detail="Synonyms already exists. Please delete the synonyms first.")
+    
+    task_running.set()
+    background_tasks.add_task(process_synonym_csv, df)
+
+    return {"message": "File accepted for processing. Names will be extracted and stored in the background."}
+
+
 def process_csv(names_storage: List[str]):
     try:
         # Store embedded vectors for semantic search
@@ -107,15 +136,30 @@ def process_csv(names_storage: List[str]):
 
         app.names_storage = names_storage
         app.fuzzy_matcher = FuzzyMatcher(app.names_storage)
+        synonym_manager.set_names_storage(names_storage)
     finally:
         # Clear the flag to indicate that the task has completed
         task_running.clear()
+
+def process_synonym_csv(dataframe: pd.DataFrame):
+    try:
+        synonym_manager.set_synonym_csv(dataframe)
+    except Exception as e:
+        logger.error(f"Error processing synonym CSV: {str(e)}")
+    finally:
+        task_running.clear()
+        logger.info("Synonym CSV processing task finished")
 
 
 @app.delete("/purge/")
 async def delete_collection():
     vec_db.remove_collection()
     app.names_storage = []
+    return {"message": "DB deleted successfully."}
+
+@app.delete("/purge-synonym/")
+async def delete_synonym_collection():
+    synonym_manager.remove_synonym_csv()
     return {"message": "DB deleted successfully."}
 
 
@@ -128,8 +172,18 @@ async def search(query: str, k: int = 5):
     fuzzy_matches = app.fuzzy_matcher.get_top_k_matches(query, k)
 
     # Semantic search
-    query_vector = embedder.embed(query)
-    semantic_matches = vec_db.find_closest(query_vector, k)
+    synonym_words = synonym_manager.get_synonym(query.lower())
+    logger.info(f"Synonyms found for the word {query.lower()}: {synonym_words}")
+    semantic_matches = []
+    if synonym_words != None:
+        for syn_word in synonym_words:
+            query_vector = embedder.embed(syn_word)
+            semantic_matches += vec_db.find_closest(query_vector, k)
+        if len(synonym_words) > 1:
+            semantic_matches = sorted(semantic_matches, key=lambda x: x.score, reverse=True)[:k]
+    else:
+        query_vector = embedder.embed(query)
+        semantic_matches = vec_db.find_closest(query_vector, k)       
 
     # Formatting the response
     semantic_results = [{"name": match.payload["name"], "score": match.score} for match in semantic_matches]
@@ -146,6 +200,15 @@ async def task_status():
         return {"status": "running", "processed_items": vec_db.get_item_count()}
     else:
         return {"status": "finished", "nb_items_stored": vec_db.get_item_count()}
+    
+@app.get("/task-synonym-status/")
+async def task_status():
+    if task_running.is_set():
+        return {"status": "running", "processed_items": synonym_manager.get_synonym_count()}
+    else:
+        return {"status": "finished", "nb_items_stored": synonym_manager.get_synonym_count()}
+
+
 
 
 if __name__ == "__main__":
