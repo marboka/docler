@@ -1,8 +1,8 @@
 I reused previous components and decided to have a very similiar setup for uploading and handling synonyms, to uploading and handling the words.  
 I created a new page in gradio where you can upload a synonym CSV, which shoud have the following structure: <br />
-<pre>word,synonym</pre>
-<pre>Moon,Apollo 11</pre>
-<pre>Moon,Moon Mission</pre>
+<pre>word,synonym
+Moon,Apollo 11
+Moon,Moon Mission</pre>
 Words should not have spaces before or after in the CSV. This CSV is case insensitive.  
 
 First you should upload your CSV of words, and then upload your synonym CSV, becuase the synonyms will be checked against the words, and we ignore those which are not present in the words. The user is informed by this, but this functionalty could be improved.  
