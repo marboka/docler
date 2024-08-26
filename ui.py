@@ -125,12 +125,13 @@ with gr.Blocks(css="body { font-family: Arial, sans-serif; } footer { visibility
             gr.Markdown("""## Info
                         - the csv file must be **comma separated**, don't put spaces before the words
                         - the csv file **should have a 'word' and 'synonym' column**, anything else will be discarded
-                        - you can only write one word to each columns
-                        - you can have multiple synonyms for the same word (you a need a different row for each synonym)
+                        - only one word can be written to each columns 
+                        - it is possible to have multiple synonyms for the same word 
                         - for example: 
                                 <br /> word,synonym
                                 <br /> word1,word2
                                 <br /> word1,word3
+                        - first upload the words csv and then upload the synonym csv
                         """)
         csv_file = gr.File(label="Upload CSV File", type='filepath', elem_classes="tab-container")
         upload_button = gr.Button("Upload", elem_classes="tab-container")
