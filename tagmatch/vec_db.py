@@ -15,7 +15,7 @@ class Embedder:
 
     def __init__(self, model_name: str, cache_dir: str, settings: BaseSettings, use_gpu:bool = False):
         self.provider = ['CUDAExecutionProvider'] if use_gpu else ['CPUExecutionProvider'] 
-        self.embedding_model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+        self.embedding_model = TextEmbedding(model_name=model_name, cache_dir=cache_dir, providers=self.provider)
         if settings.use_reduced_precision:
             self.embedding_dim = settings.n_components
         else:
