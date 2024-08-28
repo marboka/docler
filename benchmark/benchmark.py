@@ -9,6 +9,10 @@ from pydantic_settings import BaseSettings
 import pandas as pd
 import logging
 import concurrent.futures
+import onnxruntime as ort
+
+print(ort.get_available_providers())
+ort.set_default_logger_severity(3)
 
 class Settings(BaseSettings):
     model_name: str
@@ -64,11 +68,20 @@ if __name__ == "__main__":
     setup_logging(file_path="benchmark/benchmark_log.txt")
     logger = logging.getLogger("fastapi")
 
-    logger.info("Running CPU benchmark with 1 thread...")
+    logger.info("Running CPU benchmark with 1 thread, small dataset...")
     benchmark_process_csv(use_gpu=False, csv_path='tags/dummy_tags.csv', num_threads=1)
 
-    logger.info("Running CPU benchmark with 4 thread...")
+    logger.info("Running CPU benchmark with 4 thread, small dataset...")
     benchmark_process_csv(use_gpu=False, csv_path='tags/dummy_tags.csv', num_threads=4)
     
-    logger.info("Running GPU benchmark...")
+    logger.info("Running GPU benchmark, small dataset...")
     benchmark_process_csv(use_gpu=True,csv_path='tags/dummy_tags.csv')
+
+    logger.info("Running CPU benchmark with 1 thread, large dataset...")
+    benchmark_process_csv(use_gpu=False, csv_path='tags/long_dummy_tags.csv', num_threads=1)
+
+    logger.info("Running CPU benchmark with 4 thread, large dataset...")
+    benchmark_process_csv(use_gpu=False, csv_path='tags/long_dummy_tags.csv', num_threads=4)
+    
+    logger.info("Running GPU benchmark, large dataset...")
+    benchmark_process_csv(use_gpu=True,csv_path='tags/long_dummy_tags.csv')

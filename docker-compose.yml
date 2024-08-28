@@ -22,6 +22,14 @@ services:
       - ./data:/app/data:z
     depends_on:
       - qdrant
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
 
   ui:
     build:
