@@ -1,6 +1,7 @@
 pandas
 fastapi
-fastembed
+onnxruntime-gpu -i https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
+fastembed-gpu
 qdrant-client
 thefuzz
 pydantic

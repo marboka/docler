@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     qdrant_host: str
     qdrant_port: int
     qdrant_collection: str
+    use_reduced_precision: bool
+    n_components: int
 
     class Config:
         env_file = ".env"
@@ -28,7 +30,7 @@ def embed_and_store(embedder: Embedder, vec_db: VecDB, name:str):
     return vector 
 
 def benchmark_process_csv(use_gpu: bool, csv_path: str, num_threads: int = 1):
-    embedder = Embedder(model_name=settings.model_name, cache_dir=settings.cache_dir, use_gpu=use_gpu)
+    embedder = Embedder(model_name=settings.model_name, cache_dir=settings.cache_dir, settings=settings, use_gpu=use_gpu)
 
     vec_db = VecDB(host=settings.qdrant_host,
                port=settings.qdrant_port,
