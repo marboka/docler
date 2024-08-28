@@ -1,18 +1,17 @@
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import pandas as pd
+from sklearn.preprocessing import normalize
 
 class PcaReducer:
     def __init__(self, n_components=100):
         self.pca = PCA(n_components=n_components)
-        self.std_scaler = StandardScaler()
         self.fitted = False
         
     def fit(self, dataframe:pd.DataFrame):
         if dataframe.ndim == 1:
             dataframe = dataframe.reshape(1, -1)
-        scaled_df = self.std_scaler.fit_transform(dataframe)
-        self.pca.fit(scaled_df)
+        normalized_vectors = normalize(dataframe)
+        self.pca.fit(normalized_vectors)
         self.fitted = True
         
     def transform(self, dataframe:pd.DataFrame):
@@ -20,5 +19,8 @@ class PcaReducer:
             return
         if dataframe.ndim == 1:
             dataframe = dataframe.reshape(1, -1)
-        scaled_df = self.std_scaler.fit_transform(dataframe)
-        return self.pca.transform(scaled_df)
+            dataframe = normalize(dataframe)
+        transformed_vectors = self.pca.transform(dataframe)
+        if transformed_vectors.shape[0] == 1:
+            return transformed_vectors.flatten()
+        return transformed_vectors
