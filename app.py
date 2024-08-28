@@ -194,14 +194,16 @@ async def search(query: str, k: int = 5):
         for syn_word in synonym_words:
             query_vector = embedder.embed(syn_word)
             if settings.use_reduced_precision:
-                query_vector = pca_reducer.transform(query_vector).flatten()
+                query_vector = pca_reducer.transform(query_vector)
             semantic_matches += vec_db.find_closest(query_vector, k)
         if len(synonym_words) > 1:
+            semantic_matches = sorted(semantic_matches, key=lambda x: x.score)
+            semantic_matches = list({x.id: x for x in semantic_matches}.values())
             semantic_matches = sorted(semantic_matches, key=lambda x: x.score, reverse=True)[:k]
     else:
         query_vector = embedder.embed(query)
         if settings.use_reduced_precision:
-            query_vector = pca_reducer.transform(query_vector).flatten()
+            query_vector = pca_reducer.transform(query_vector)
         semantic_matches = vec_db.find_closest(query_vector, k)       
 
     # Formatting the response
