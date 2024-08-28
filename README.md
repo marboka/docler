@@ -1,11 +1,17 @@
+Branches: 
+- main: starter code, no modification
+- feature/benchmark - task1 solution
+- feature/manual_synonym - task2 solution
+- feature/size_optimization - task2 + task3 solution
+- feature/final-soltuion - taks1 + task2 + task3 solutions
+
+
 ### Task 1. Benchmarking:
 
 1. Created a benchmark folder with a benchmark.py script in it, which measure the Embedding time of tags with CPU with/without multithreading and GPU setups
     The logs are saved to benchmark_log.txt
 2. Modified tagmatch/vec_db.py to handle CudaExecutionProdiver in the Embedder
 3. I could not setup a correct Cuda/CuDNN version with Docker to utilize my GPU, therefore I could actually measure the time differences between CPU and GPU
-
-TODO: load onnxruntime-gpu and other packages to handle gpu
 
 Important metrics to consider:
 1. Processing time: the total time it takes to process all the tags.
